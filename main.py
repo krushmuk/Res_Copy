@@ -1,6 +1,5 @@
 import requests
 import json
-from pprint import pprint
 from datetime import datetime
 
 
@@ -17,10 +16,12 @@ class ResCopy:
                   'album_id': 'profile',
                   'extended': 1,
                   'photo_sizes': 1,
-                  'count': 2}
+                  'count': 5}
         url = 'https://api.vk.com/method/photos.get'
+        print('Получение фотогорафий...')
         res = requests.get(url=url, params=params)
         photos_list = list()
+        print('Обработка фотографий...')
         for photo in res.json()['response']['items'][0:params['count']]:
             photo_dict = dict()
             photo_dict['date'] = datetime.fromtimestamp(photo['date'])
@@ -35,34 +36,26 @@ class ResCopy:
         headers = {'content type': 'application/json',
                    'authorization': f'OAuth {self.ya_token}'}
         uploaded_photos = list()
+        print('Создание папки...')
         folder = requests.put(url=url, headers=headers, params={'path': 'Res_Copy'},)
-        print(folder.status_code)
+        print('Загрузка фотографий на диск...')
         for photo in self.get_photos():
             photo_dict = dict()
-            with open('photos.json') as file:
-                photo_json = json.load(file)
-                similar = False
-                for photo_info in photo_json:
-                    if photo_info['file_name'] == photo['likes']:
-                        similar = True
-                        print(f'{photo_info["file_name"]} is {photo["likes"]}')
-                        break
-                if similar:
-                    photo_dict['file_name'] = f'{photo["likes"]} {str(photo["date"]).split()[0]}'
-                else:
-                    photo_dict['file_name'] = photo["likes"]
-                photo_dict['size'] = [photo['size']]
-                params = {'path': f'Res_Copy/{photo_dict["file_name"]}',
-                          'url': photo['url']}
-                uploaded_photos.append(photo_dict)
-                res = requests.post(url=f'{url}/upload', headers=headers, params=params)
-                photo_json.append(photo_dict)
-                json.dump(photo_json, file)
-        print(uploaded_photos)
+            similar = False
+            for uploaded_photo in uploaded_photos:
+                if uploaded_photo['file_name'] == photo['likes']:
+                    similar = True
+                    break
+            if similar:
+                photo_dict['file_name'] = f'{photo["likes"]} {str(photo["date"]).split()[0]}'
+            else:
+                photo_dict['file_name'] = photo["likes"]
+            photo_dict['size'] = [photo['size']]
+            params = {'path': f'Res_Copy/{photo_dict["file_name"]}', 'url': photo['url']}
+            uploaded_photos.append(photo_dict)
+            res = requests.post(url=f'{url}/upload', headers=headers, params=params)
+        with open('photos.json', 'w') as file:
+            json.dump(uploaded_photos, file)
+        print('Фотографии успешно загружены!')
 
-
-
-
-Copy_my_wall = ResCopy('958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008',
-                       1, 'AQAAAAAtiH2ZAADLW6lZpOLkPkX2imAnKXjPmQU')
-Copy_my_wall.upload_photos()
+# Использовать метод upload_photos()
