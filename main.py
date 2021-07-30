@@ -3,20 +3,29 @@ import json
 from datetime import datetime
 
 
-class ResCopy:
-    def __init__(self, vk_token, vk_id, ya_token):
-        self.vk_token = vk_token
-        self.vk_id = vk_id
-        self.ya_token = ya_token
+class VkApi:
+    def __init__(self, token):
+        self.token = token
+        self.photo_count = int(input('Количество фото: '))
+        self.id = input('id ')
+        self.id_type = None
+        try:
+            self.id = int(self.id)
+            self.id_type = 'int'
+        except ValueError:
+            self.id_type = 'str'
 
     def get_photos(self):
-        params = {'access_token': self.vk_token,
+        params = {'access_token': self.token,
                   'v': '5.131',
-                  'owner_id': self.vk_id,
                   'album_id': 'profile',
                   'extended': 1,
                   'photo_sizes': 1,
-                  'count': 5}
+                  'count': self.photo_count}
+        if self.id_type == 'str':
+            params['username'] = self.id
+        else:
+            params['owner_id'] = self.id
         url = 'https://api.vk.com/method/photos.get'
         print('Получение фотогорафий...')
         res = requests.get(url=url, params=params)
@@ -31,15 +40,24 @@ class ResCopy:
             photos_list.append(photo_dict)
         return photos_list
 
+
+class YaApi:
+    def __init__(self, token, class_name):
+        self.token = token
+        if isinstance(class_name, VkApi):
+            self.class_name = class_name
+        else:
+            print('Неправильное имя экземпляра класса')
+
     def upload_photos(self):
         url = 'https://cloud-api.yandex.net/v1/disk/resources'
         headers = {'content type': 'application/json',
-                   'authorization': f'OAuth {self.ya_token}'}
+                   'authorization': f'OAuth {self.token}'}
         uploaded_photos = list()
         print('Создание папки...')
         folder = requests.put(url=url, headers=headers, params={'path': 'Res_Copy'},)
         print('Загрузка фотографий на диск...')
-        for photo in self.get_photos():
+        for photo in self.class_name.get_photos():
             photo_dict = dict()
             similar = False
             for uploaded_photo in uploaded_photos:
@@ -58,4 +76,4 @@ class ResCopy:
             json.dump(uploaded_photos, file)
         print('Фотографии успешно загружены!')
 
-# Использовать метод upload_photos()
+# Использовать upload_photos
